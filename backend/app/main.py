@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -6,7 +8,44 @@ from app.core.config import settings
 from app.database import engine
 from app.routers import auth, caja, catalogos, compras, creditos, dashboard, pedidos, usuarios, ventas
 
-app = FastAPI(title="La Casa del Queso API", version="1.0.0")
+
+def ensure_conductor_user() -> str:
+    """Garantiza que exista el usuario conductor (idempotente).
+
+    Solo crea el usuario 'conductor' si no existe. No toca admin, vendedor,
+    bodeguero ni ningún otro dato (clientes, productos, ventas, pedidos, caja).
+    Retorna 'creado' o 'existe'.
+    """
+    from app.core.security import hash_password
+    from app.database import SessionLocal
+    from app.models.usuario import Usuario
+
+    db = SessionLocal()
+    try:
+        if db.query(Usuario).filter(Usuario.username == "conductor").first():
+            return "existe"
+        db.add(Usuario(username="conductor",
+                       password_hash=hash_password("conductor"),
+                       rol="conductor", activo=True))
+        db.commit()
+        return "creado"
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Render Free no permite Shell, así que el deploy debe auto-reparar el
+    # usuario conductor. Idempotente y acotado: solo conductor, nada más.
+    try:
+        print(f"Startup: conductor -> {ensure_conductor_user()}")
+    except Exception as e:
+        # No bloquear el arranque si la BD aún no está lista.
+        print(f"Startup: verificación de conductor omitida: {e}")
+    yield
+
+
+app = FastAPI(title="La Casa del Queso API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
