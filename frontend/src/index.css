@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-[#16181b] text-stone-100 antialiased; }
+.card { @apply bg-[#1f2328] rounded-2xl border border-[#31373e] shadow-[0_2px_12px_rgba(0,0,0,0.35)] p-5; }
+.btn { @apply px-4 py-2 rounded-xl font-medium transition-colors border border-transparent; }
+.btn-primary { @apply bg-[#c9a86a] text-[#1b1e22] font-semibold hover:bg-[#d9bc83]; }
+.btn-ghost { @apply border-[#3a4148] text-stone-200 hover:bg-[#2a2f35]; }
+.input { @apply bg-[#2a2f35] border border-[#3a4148] text-stone-100 rounded-xl px-3 py-2 w-full placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[#c9a86a]/30 focus:border-[#c9a86a]; }
+select.input option { background-color: #2a2f35; }
+.table { @apply w-full text-sm text-stone-200; }
+.table th { @apply text-left p-2.5 border-b border-[#31373e] text-stone-400 uppercase text-xs tracking-wide font-medium; }
+.table td { @apply p-2.5 border-b border-[#262b31]; }
+.page-title { @apply text-2xl font-bold text-stone-50; }
+.page-sub { @apply text-sm text-stone-400 mb-4; }
+.badge { @apply inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap; }
+.badge-ok { @apply bg-emerald-500/15 text-emerald-300; }
+.badge-warn { @apply bg-[#c9a86a]/15 text-[#e3c98a]; }
+.badge-bad { @apply bg-red-500/15 text-red-300; }
+.badge-idle { @apply bg-stone-500/15 text-stone-300; }
+
+/* Sidebar oscuro */
+.side-link { @apply relative flex items-center gap-3 px-3 py-2 rounded-xl text-stone-300 hover:bg-[#23282e] hover:text-white transition-colors w-full text-left text-[15px]; }
+.side-link-active { @apply bg-[#262c33] text-white font-medium; }
+.side-link-active::before { content: ""; @apply absolute left-1 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full bg-[#d8c49a]; }
+.side-link-active .side-icon { filter: drop-shadow(0 0 5px rgba(216, 196, 154, 0.55)); }
+.side-sub { @apply block px-3 py-1.5 rounded-lg text-sm text-stone-400 hover:bg-[#23282e] hover:text-white transition-colors w-full text-left; }
+.side-sub-active { @apply bg-[#262c33] text-white font-medium; }
+.chev { @apply text-stone-600 transition-transform duration-200; }
+/* Etiquetas del sidebar: siempre montadas, cambio instantáneo con el ancho */
+.side-label { @apply whitespace-nowrap overflow-hidden transition-all duration-100 ease-out; }
+.side-label-open { @apply flex-1 opacity-100; max-width: 180px; }
+.side-label-closed { @apply flex-none opacity-0; max-width: 0; }
+.side-chev { @apply overflow-hidden transition-all duration-100 ease-out opacity-100; max-width: 20px; }
+.side-chev-closed { @apply opacity-0; max-width: 0; }
+/* Tarjeta compacta para dashboard */
+.card-sm { @apply bg-[#1f2328] rounded-2xl border border-[#31373e] shadow-[0_2px_12px_rgba(0,0,0,0.35)] px-4 py-3; }
+.submenu { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.25s ease; }
+.submenu.open { grid-template-rows: 1fr; }
+.submenu > div { overflow: hidden; }
+
+/* Bottom Bar */
+.bottombar { @apply flex items-center justify-around gap-1 border-t border-[#23282e] bg-[#101214]/95 px-2 py-2 shadow-[0_-2px_12px_rgba(0,0,0,0.4)] backdrop-blur; }
+.bb-item { @apply relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-stone-400 hover:bg-[#23282e] hover:text-white transition-colors; }
+.bb-item-active { @apply bg-[#262c33] text-white; }
+.bb-label { @apply text-[11px] leading-none; }
+.bb-badge { @apply absolute -top-1 left-1/2 ml-2 rounded-full bg-[#c9a86a] px-1.5 text-[10px] font-bold leading-4 text-[#1b1e22]; }
+
+@media print {
+  aside, header { display: none !important; }
+  body { background: #fff; }
+}
