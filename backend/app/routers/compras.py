@@ -21,6 +21,8 @@ def list_compras(db: Session = Depends(get_db), _: Usuario = Depends(get_current
 @router.post("/compras/directa", status_code=201)
 def registrar_compra(body: CompraCreate, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
     """Registrar compra recibida: crea la compra y entra al inventario en una sola transacción."""
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no puede registrar compras")
     if not db.get(Proveedor, body.proveedor_id):
         raise HTTPException(400, "Proveedor no existe")
     try:

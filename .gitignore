@@ -1,0 +1,9 @@
+
+# Archivos locales / datos de desarrollo
+casa_queso_data.sql
+
+# Archivos generados por TypeScript
+frontend/tsconfig.tsbuildinfo
+
+casa_queso_data.sql
+frontend/tsconfig.tsbuildinfo

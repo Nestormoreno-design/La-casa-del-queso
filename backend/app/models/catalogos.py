@@ -36,7 +36,8 @@ class Cliente(Base):
     email: Mapped[str | None] = mapped_column(String(120))
     direccion: Mapped[str | None] = mapped_column(String(255))
     ciudad: Mapped[str | None] = mapped_column(String(100))
-    tipo_cliente: Mapped[str | None] = mapped_column(String(30))
+    tipo_cliente: Mapped[str | None] = mapped_column(String(30), default="MINORISTA")
+    # MINORISTA | MAYORISTA (categoría comercial del cliente; no confundir con categorías de producto)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

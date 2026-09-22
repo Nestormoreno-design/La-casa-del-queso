@@ -35,6 +35,7 @@ export default function VentaDetail({ id, onClose, onAnulada }: { id: number; on
             </div>
             {v.estado === "ANULADA" && <p className="badge badge-bad mb-2">VENTA ANULADA</p>}
             {v.estado === "FACTURADA" && <p className="badge badge-warn mb-2">FACTURADA (sin descontar inventario)</p>}
+            {v.estado === "PENDIENTE" && <p className="badge badge-bad mb-2">CRÉDITO PENDIENTE DE PAGO</p>}
             <div className="grid grid-cols-2 gap-2 text-sm">
               <p><span className="text-stone-400">Fecha:</span> {v.fecha?.slice(0, 16).replace("T", " ")}</p>
               <p><span className="text-stone-400">Cliente:</span> {v.cliente?.nombre ?? "Mostrador"}</p>
@@ -55,7 +56,7 @@ export default function VentaDetail({ id, onClose, onAnulada }: { id: number; on
             <div className="mt-3 flex justify-end gap-2">
               <button className="btn btn-ghost" onClick={() => window.print()}>Imprimir</button>
               <button className="btn btn-ghost" onClick={() => setFactura(true)}>Ver factura</button>
-              {(v.estado === "PAGADA" || v.estado === "FACTURADA") && !confirm && (
+              {(v.estado === "PAGADA" || v.estado === "FACTURADA" || v.estado === "PENDIENTE") && !confirm && (
                 <button className="btn border border-red-800 text-red-300 hover:bg-red-950" onClick={() => setConfirm(true)}>Anular venta</button>
               )}
             </div>

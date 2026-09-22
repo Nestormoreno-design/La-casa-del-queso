@@ -13,15 +13,17 @@ class Pedido(Base):
     fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     fecha_entrega: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     hora_entrega: Mapped[str | None] = mapped_column(String(50))
-    estado: Mapped[str] = mapped_column(String(20), default="PENDIENTE", nullable=False)
-    # PENDIENTE | EN_PREPARACION | PROGRAMADO | ENTREGADO | CANCELADO
+    estado: Mapped[str] = mapped_column(String(30), default="PENDIENTE", nullable=False)
+    # PENDIENTE | EN PREPARACIÓN | EN DISTRIBUCIÓN | ENTREGADO | DEVUELTO
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     direccion_entrega: Mapped[str | None] = mapped_column(String(255))
     observaciones: Mapped[str | None] = mapped_column(Text)
+    conductor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     items = relationship("PedidoItem", cascade="all, delete-orphan", lazy="selectin")
     cliente = relationship("Cliente", lazy="joined")
+    conductor = relationship("Usuario", lazy="joined", foreign_keys=[conductor_id])
 
 
 class PedidoItem(Base):

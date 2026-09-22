@@ -11,5 +11,11 @@ export function displayName(username?: string | null): string {
 
 export function displayRole(rol?: string | null): string {
   if (!rol) return "";
-  return rol.charAt(0).toUpperCase() + rol.slice(1);
+  const map: Record<string, string> = {
+    administrador: "Administrador",
+    vendedor: "Vendedor",
+    bodeguero: "Bodeguero",
+    conductor: "Conductor",
+  };
+  return map[rol.toLowerCase()] ?? (rol.charAt(0).toUpperCase() + rol.slice(1));
 }

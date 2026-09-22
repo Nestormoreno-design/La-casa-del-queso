@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { fmtCantidad } from "../utils/format";
 
 const EMPTY = { codigo: "", nombre: "", precio_venta: "", costo: "", tipo_venta: "PESO", unidad_medida: "KG", stock_minimo: "0", proveedor_id: "", activo: true };
 
@@ -75,7 +76,7 @@ export default function Inventario() {
   const doAgregarStock = async () => {
     try {
       const r = await api.post("/inventario/entrada", { producto_id: stock.id, cantidad: sCant, costo_unitario: sCosto || null, proveedor_id: sProv || null, observacion: sObs });
-      setMsg(`Stock agregado: ${r.data.anterior} + ${r.data.entrada} = ${r.data.nuevo} kg`);
+      setMsg(`Stock agregado: ${fmtCantidad(r.data.anterior, stock.unidad_medida)} + ${fmtCantidad(r.data.entrada, stock.unidad_medida)} = ${fmtCantidad(r.data.nuevo, stock.unidad_medida)} ${stock.unidad_medida}`);
       setStock(null); load();
     } catch (e: any) { setMsg(e.response?.data?.detail ?? "Error"); }
   };
@@ -135,10 +136,10 @@ export default function Inventario() {
                   <td>{p.unidad_medida}</td>
                   <td>${Number(p.precio_venta).toLocaleString()}</td>
                   <td className="text-stone-300">${Number(p.costo_promedio).toLocaleString()}</td>
-                  <td className="font-semibold">{p.stock_actual} {p.tipo_venta === "PESO" ? "kg" : ""}</td>
-                  <td className="text-stone-400">{p.stock_minimo}</td>
+                  <td className="font-semibold">{fmtCantidad(p.stock_actual, p.unidad_medida)} {p.unidad_medida}</td>
+                  <td className="text-stone-400">{fmtCantidad(p.stock_minimo, p.unidad_medida)}</td>
                   <td>{estadoBadge(p)}</td>
-                  <td className="text-xs text-stone-400">{u ? `${u.tipo} · ${u.cantidad}` : "—"}</td>
+                  <td className="text-xs text-stone-400">{u ? `${u.tipo} · ${fmtCantidad(u.cantidad, p.unidad_medida)}` : "—"}</td>
                   <td>
                     <div className="flex gap-1">
                       <button className="btn btn-ghost px-3 py-1" onClick={() => editar(p)}>Editar</button>
@@ -158,7 +159,7 @@ export default function Inventario() {
           <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-1 text-lg font-bold text-stone-50">Agregar stock</h3>
             <p className="text-sm text-stone-300">Producto: <strong className="text-stone-100">{stock.nombre}</strong></p>
-            <p className="mb-3 text-sm text-stone-300">Existencia actual: <strong className="text-stone-100">{stock.stock_actual} {stock.unidad_medida}</strong></p>
+            <p className="mb-3 text-sm text-stone-300">Existencia actual: <strong className="text-stone-100">{fmtCantidad(stock.stock_actual, stock.unidad_medida)} {stock.unidad_medida}</strong></p>
             {field("Cantidad a ingresar", <input className="input" value={sCant} onChange={(e) => setSCant(e.target.value)} placeholder={stock.tipo_venta === "PESO" ? "50" : "10"} />)}
             <p className="mt-1 text-xs text-stone-500">Unidad: {stock.unidad_medida}{stock.tipo_venta === "PESO" ? " (se permiten decimales: 0.500, 2.500)" : ""}</p>
             <div className="mt-2">{field(`Costo de compra por ${stock.unidad_medida}`, <input className="input" value={sCosto} onChange={(e) => setSCosto(e.target.value)} placeholder="36000" />)}</div>
@@ -179,7 +180,7 @@ export default function Inventario() {
       <div className="card overflow-x-auto">
         <h3 className="mb-2 font-semibold text-stone-100">Movimientos recientes</h3>
         <table className="table"><thead><tr><th>ID</th><th>Producto</th><th>Tipo</th><th>Cant</th><th>Antes → Nuevo</th><th>Ref</th></tr></thead>
-        <tbody>{movs.slice(0, 30).map((m: any) => <tr key={m.id}><td>{m.id}</td><td>{m.producto?.nombre}</td><td>{m.tipo}</td><td>{m.cantidad}</td><td>{m.stock_anterior} → {m.stock_nuevo}</td><td>{m.ref_tipo} #{m.ref_id}</td></tr>)}</tbody></table>
+        <tbody>{movs.slice(0, 30).map((m: any) => <tr key={m.id}><td>{m.id}</td><td>{m.producto?.nombre}</td><td>{m.tipo}</td><td>{fmtCantidad(m.cantidad, m.producto?.unidad_medida)}</td><td>{fmtCantidad(m.stock_anterior, m.producto?.unidad_medida)} → {fmtCantidad(m.stock_nuevo, m.producto?.unidad_medida)}</td><td>{m.ref_tipo} #{m.ref_id}</td></tr>)}</tbody></table>
       </div>
     </div>
   );

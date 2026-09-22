@@ -42,7 +42,7 @@ class ClienteBase(BaseModel):
     email: str | None = None
     direccion: str | None = None
     ciudad: str | None = None
-    tipo_cliente: str | None = None
+    tipo_cliente: str = Field(default="MINORISTA", pattern="^(MINORISTA|MAYORISTA)$")
 
 
 class ClienteCreate(ClienteBase):
@@ -91,7 +91,7 @@ class ClienteUpdate(BaseModel):
     email: str | None = None
     direccion: str | None = None
     ciudad: str | None = None
-    tipo_cliente: str | None = None
+    tipo_cliente: str | None = Field(default=None, pattern="^(MINORISTA|MAYORISTA)$")
     activo: bool | None = None
 
 

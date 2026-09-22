@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import VentaDetail from "../components/VentaDetail";
+import { fmtMoney } from "../utils/format";
 
 type Linea = { producto_id: number | ""; cantidad: string; costo_unitario: string };
 
@@ -79,7 +80,13 @@ export function Compras() {
 }
 
 const tipoBadge = (t: string) =>
-  t === "DISTRIBUCION" ? <span className="badge badge-warn">Distribución</span> : <span className="badge badge-ok">Menudeo</span>;
+  t === "DISTRIBUCION" ? <span className="badge badge-warn">Mayorista</span> : <span className="badge badge-ok">Minorista</span>;
+
+const estadoBadge = (e: string) =>
+  e === "PAGADA" ? <span className="badge badge-ok">PAGADA</span>
+  : e === "PENDIENTE" ? <span className="badge badge-bad">CRÉDITO</span>
+  : e === "FACTURADA" ? <span className="badge badge-warn">FACTURADA</span>
+  : <span className="badge badge-bad">ANULADA</span>;
 
 export function Ventas() {
   const [items, setItems] = useState<any[]>([]);
@@ -94,7 +101,7 @@ export function Ventas() {
       </div>
       <div className="card overflow-x-auto">
         <table className="table"><thead><tr><th>ID</th><th>Tipo</th><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Pago</th><th>Estado</th><th /></tr></thead>
-        <tbody>{items.map((v: any) => <tr key={v.id}><td>#{v.id}</td><td>{tipoBadge(v.tipo ?? "MENUDEO")}</td><td>{v.pedido_id ? `#${v.pedido_id}` : "—"}</td><td className="text-xs text-stone-400">{v.fecha?.slice(0, 16).replace("T", " ")}</td><td>{v.cliente?.nombre ?? "Mostrador"}</td><td>${Number(v.total).toLocaleString()}</td><td>{v.metodo_pago}</td><td>{v.estado === "PAGADA" ? <span className="badge badge-ok">PAGADA</span> : v.estado === "FACTURADA" ? <span className="badge badge-warn">FACTURADA</span> : <span className="badge badge-bad">ANULADA</span>}</td><td><button className="btn btn-ghost px-3 py-1" onClick={() => setDetalle(v.id)}>Ver</button></td></tr>)}</tbody></table>
+        <tbody>{items.map((v: any) => <tr key={v.id}><td>#{v.id}</td><td>{tipoBadge(v.tipo ?? "MENUDEO")}</td><td>{v.pedido_id ? `#${v.pedido_id}` : "—"}</td><td className="text-xs text-stone-400">{v.fecha?.slice(0, 16).replace("T", " ")}</td><td>{v.cliente?.nombre ?? "Mostrador"}</td><td>{fmtMoney(v.total)}</td><td>{v.metodo_pago}</td><td>{estadoBadge(v.estado)}</td><td><button className="btn btn-ghost px-3 py-1" onClick={() => setDetalle(v.id)}>Ver</button></td></tr>)}</tbody></table>
       </div>
       {detalle !== null && <VentaDetail id={detalle} onClose={() => setDetalle(null)} onAnulada={() => { setDetalle(null); load(); }} />}
     </div>

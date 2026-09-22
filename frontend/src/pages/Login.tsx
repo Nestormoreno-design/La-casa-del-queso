@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -11,7 +12,11 @@ export default function Login() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
-    try { await login(u, p); nav("/dashboard"); }
+    try {
+      await login(u, p);
+      const me = await api.get("/auth/me");
+      nav(me.data?.rol === "conductor" ? "/mis-entregas" : "/dashboard");
+    }
     catch { setErr("Credenciales inválidas"); }
   };
   return (

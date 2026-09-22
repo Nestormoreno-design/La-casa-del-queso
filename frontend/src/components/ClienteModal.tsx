@@ -2,11 +2,12 @@ import { useState } from "react";
 import { api } from "../api/client";
 
 export default function ClienteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (c: any) => void }) {
-  const [f, setF] = useState({ nombre: "", documento: "", telefono: "", email: "", direccion: "", ciudad: "" });
+  const [f, setF] = useState({ nombre: "", documento: "", telefono: "", email: "", direccion: "", ciudad: "", tipo_cliente: "MINORISTA" });
   const [msg, setMsg] = useState("");
 
   const crear = async () => {
     try {
+      if (!f.nombre.trim()) { setMsg("El nombre del cliente es obligatorio."); return; }
       const r = await api.post("/clientes", f);
       onCreated({ id: r.data.id, ...f });
     } catch (e: any) { setMsg(e.response?.data?.detail ?? "Error al crear cliente"); }
@@ -23,6 +24,13 @@ export default function ClienteModal({ onClose, onCreated }: { onClose: () => vo
           <input className="input" placeholder="Correo electrónico" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
           <input className="input" placeholder="Dirección" value={f.direccion} onChange={(e) => setF({ ...f, direccion: e.target.value })} />
           <input className="input" placeholder="Ciudad" value={f.ciudad} onChange={(e) => setF({ ...f, ciudad: e.target.value })} />
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs text-stone-400">Categoría del cliente</label>
+            <select className="input" value={f.tipo_cliente} onChange={(e) => setF({ ...f, tipo_cliente: e.target.value })}>
+              <option value="MINORISTA">Minorista</option>
+              <option value="MAYORISTA">Mayorista</option>
+            </select>
+          </div>
         </div>
         {msg && <p className="mt-2 text-sm text-red-300">{msg}</p>}
         <div className="mt-3 flex justify-end gap-2">

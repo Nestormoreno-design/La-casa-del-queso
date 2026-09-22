@@ -98,7 +98,9 @@ def _ficha(db: Session, s: CajaSesion) -> dict:
 
 
 @router.get("/caja/actual")
-def caja_actual(db: Session = Depends(get_db), _: Usuario = Depends(get_current_user)):
+def caja_actual(db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     s = db.query(CajaSesion).filter(CajaSesion.estado == "ABIERTA").first()
     if not s:
         return {"abierta": False}
@@ -107,13 +109,17 @@ def caja_actual(db: Session = Depends(get_db), _: Usuario = Depends(get_current_
 
 
 @router.get("/caja/historial")
-def historial(db: Session = Depends(get_db), _: Usuario = Depends(get_current_user)):
+def historial(db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     sesiones = db.query(CajaSesion).order_by(CajaSesion.id.desc()).limit(100).all()
     return [_ficha(db, s) for s in sesiones]
 
 
 @router.get("/caja/{sid}/detalle")
-def detalle(sid: int, db: Session = Depends(get_db), _: Usuario = Depends(get_current_user)):
+def detalle(sid: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     s = db.get(CajaSesion, sid)
     if not s:
         raise HTTPException(404, "Sesión no encontrada")
@@ -131,6 +137,8 @@ def detalle(sid: int, db: Session = Depends(get_db), _: Usuario = Depends(get_cu
 
 @router.post("/caja/abrir", status_code=201)
 def abrir(body: CajaAbrir, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     if db.query(CajaSesion).filter(CajaSesion.estado == "ABIERTA").first():
         raise HTTPException(400, "Ya hay una caja abierta")
     s = CajaSesion(saldo_inicial=body.saldo_inicial, estado="ABIERTA", usuario_id=user.id)
@@ -142,6 +150,8 @@ def abrir(body: CajaAbrir, db: Session = Depends(get_db), user: Usuario = Depend
 
 @router.post("/caja/{sid}/movimiento", status_code=201)
 def movimiento(sid: int, body: dict, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     s = db.get(CajaSesion, sid)
     if not s or s.estado != "ABIERTA":
         raise HTTPException(400, "Sesión no abierta: la caja cerrada es inmutable")
@@ -159,7 +169,9 @@ def movimiento(sid: int, body: dict, db: Session = Depends(get_db), user: Usuari
 
 
 @router.post("/caja/{sid}/cerrar")
-def cerrar(sid: int, body: dict, db: Session = Depends(get_db), _: Usuario = Depends(get_current_user)):
+def cerrar(sid: int, body: dict, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     from datetime import datetime, timezone
     s = db.get(CajaSesion, sid)
     if not s or s.estado != "ABIERTA":
@@ -176,7 +188,9 @@ def cerrar(sid: int, body: dict, db: Session = Depends(get_db), _: Usuario = Dep
 
 
 @router.get("/caja/{sid}/resumen")
-def resumen(sid: int, db: Session = Depends(get_db), _: Usuario = Depends(get_current_user)):
+def resumen(sid: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no administra caja")
     s = db.get(CajaSesion, sid)
     if not s:
         raise HTTPException(404, "Sesión no encontrada")

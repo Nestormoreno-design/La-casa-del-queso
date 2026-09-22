@@ -24,10 +24,18 @@ def _checkout(db: Session, body: CheckoutIn, user: Usuario, canal: str = "POS") 
         cli = db.get(Cliente, body.cliente_id)
         if not cli or not cli.activo:
             raise HTTPException(400, "Cliente inválido")
-    # REGLA MVP: no se puede vender sin caja abierta
+    if body.metodo_pago == "CREDITO" and not body.cliente_id:
+        raise HTTPException(400, "El crédito requiere seleccionar un cliente.")
+    a_credito = body.metodo_pago == "CREDITO"
+    # REGLA MVP: no se puede vender sin caja abierta (excepto crédito, que queda pendiente).
     from app.models.caja import CajaSesion
     sesion_id = body.caja_sesion_id
-    if sesion_id is not None:
+    if a_credito:
+        if sesion_id is not None:
+            s = db.get(CajaSesion, sesion_id)
+            if not s or s.estado != "ABIERTA":
+                raise HTTPException(400, "La caja indicada no está abierta")
+    elif sesion_id is not None:
         s = db.get(CajaSesion, sesion_id)
         if not s or s.estado != "ABIERTA":
             raise HTTPException(400, "La caja indicada no está abierta")
@@ -40,7 +48,8 @@ def _checkout(db: Session, body: CheckoutIn, user: Usuario, canal: str = "POS") 
         with db.begin_nested():
             subtotal = Decimal("0")
             venta = Venta(cliente_id=body.cliente_id, descuento=body.descuento or Decimal("0"),
-                          metodo_pago=body.metodo_pago, canal=canal, tipo="MENUDEO", estado="PAGADA",
+                          metodo_pago=body.metodo_pago, canal=canal, tipo="MENUDEO",
+                          estado="PENDIENTE" if a_credito else "PAGADA",
                           caja_sesion_id=sesion_id, usuario_id=user.id,
                           observaciones=body.observaciones)
             db.add(venta)
@@ -65,9 +74,16 @@ def _checkout(db: Session, body: CheckoutIn, user: Usuario, canal: str = "POS") 
             venta.subtotal = subtotal
             venta.total = subtotal - venta.descuento
             db.flush()
-            db.add(CajaMovimiento(sesion_id=sesion_id, tipo="VENTA", monto=venta.total,
-                                  metodo_pago=venta.metodo_pago, descripcion=f"Venta #{venta.id}",
-                                  venta_id=venta.id, usuario_id=user.id))
+            if a_credito:
+                from app.models.credito import Credito
+                db.add(Credito(cliente_id=body.cliente_id, venta_id=venta.id,
+                               monto_total=venta.total, saldo_pendiente=venta.total,
+                               estado="PENDIENTE",
+                               observaciones=f"Venta {canal} #{venta.id} a crédito"))
+            else:
+                db.add(CajaMovimiento(sesion_id=sesion_id, tipo="VENTA", monto=venta.total,
+                                      metodo_pago=venta.metodo_pago, descripcion=f"Venta #{venta.id}",
+                                      venta_id=venta.id, usuario_id=user.id))
         db.commit()
     except HTTPException:
         db.rollback()
@@ -84,6 +100,8 @@ def _checkout(db: Session, body: CheckoutIn, user: Usuario, canal: str = "POS") 
 
 @router.post("/pos/checkout", status_code=201)
 def pos_checkout(body: CheckoutIn, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    if user.rol == "conductor":
+        raise HTTPException(403, "El conductor no puede registrar ventas")
     v = _checkout(db, body, user, canal="POS")
     return {"id": v.id, "total": str(v.total), "estado": v.estado}
 
@@ -130,12 +148,12 @@ def anular_venta(vid: int, db: Session = Depends(get_db), user: Usuario = Depend
         raise HTTPException(404, "Venta no encontrada")
     if v.estado == "ANULADA":
         raise HTTPException(400, "Ya anulada")
-    if v.estado not in ("PAGADA", "FACTURADA"):
+    if v.estado not in ("PAGADA", "PENDIENTE", "FACTURADA"):
         raise HTTPException(400, f"No se puede anular en estado {v.estado}")
     try:
         with db.begin_nested():
-            if v.estado == "PAGADA":
-                # Solo PAGADA movió inventario y caja: revertir
+            if v.estado in ("PAGADA", "PENDIENTE"):
+                # Ambas movieron inventario y (PAGADA) caja: revertir
                 for it in v.items:
                     prod = db.get(Producto, it.producto_id)
                     registrar_movimiento(db, prod, "ENTRADA", Decimal(it.cantidad),
@@ -143,12 +161,19 @@ def anular_venta(vid: int, db: Session = Depends(get_db), user: Usuario = Depend
                                          ref_id=v.id, usuario_id=user.id)
                 # Revertir movimiento de caja asociado (la venta anulada no cuenta)
                 db.query(CajaMovimiento).filter(CajaMovimiento.venta_id == v.id).delete()
-            # FACTURADA nunca descontó: solo se marca, y el pedido vuelve a PREPARANDO
+                # Si era crédito pendiente, cerrarlo sin saldo
+                if v.estado == "PENDIENTE":
+                    from app.models.credito import Credito
+                    for c in db.query(Credito).filter(Credito.venta_id == v.id, Credito.estado == "PENDIENTE").all():
+                        c.estado = "PAGADO"
+                        c.saldo_pendiente = Decimal("0")
+                        c.observaciones = ((c.observaciones or "") + " | Anulada la venta").strip()
+            # FACTURADA nunca descontó: solo se marca, y el pedido vuelve a EN PREPARACIÓN
             if v.pedido_id and v.estado == "FACTURADA":
                 from app.models.pedido import Pedido
                 ped = db.get(Pedido, v.pedido_id)
-                if ped and ped.estado == "LISTO":
-                    ped.estado = "PREPARANDO"
+                if ped and ped.estado == "EN DISTRIBUCIÓN":
+                    ped.estado = "EN PREPARACIÓN"
             v.estado = "ANULADA"
         db.commit()
     except Exception as e:

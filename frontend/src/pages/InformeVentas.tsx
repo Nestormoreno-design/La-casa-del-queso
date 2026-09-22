@@ -4,7 +4,7 @@ import VentaDetail from "../components/VentaDetail";
 
 const TR = ["NEQUI", "DAVIPLATA", "TRANSFERENCIA"];
 const METODOS = ["", "EFECTIVO", "NEQUI", "DAVIPLATA", "TARJETA", "TRANSFERENCIA", "CREDITO"];
-const ESTADOS = ["", "PAGADA", "FACTURADA", "ANULADA"];
+const ESTADOS = ["", "PAGADA", "PENDIENTE", "FACTURADA", "ANULADA"];
 const TIPOS = ["", "MENUDEO", "DISTRIBUCION"];
 
 export default function InformeVentas() {
@@ -27,7 +27,9 @@ export default function InformeVentas() {
     setItems(r.data);
   };
 
-  const pagadas = items.filter((v) => v.estado === "PAGADA");
+  // PAGADA + PENDIENTE (crédito) cuentan como venta; FACTURADA aún no descuenta.
+  const validas = items.filter((v) => v.estado === "PAGADA" || v.estado === "PENDIENTE");
+  const pagadas = validas;
   const menudeo = pagadas.filter((v) => (v.tipo ?? "MENUDEO") === "MENUDEO").reduce((a, v) => a + Number(v.total), 0);
   const distrib = pagadas.filter((v) => v.tipo === "DISTRIBUCION").reduce((a, v) => a + Number(v.total), 0);
   const total = pagadas.reduce((a, v) => a + Number(v.total), 0);

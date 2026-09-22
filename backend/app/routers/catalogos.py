@@ -21,6 +21,11 @@ def _get_or_404(db, model, obj_id: int, name: str):
     return obj
 
 
+def _bloquear_conductor(user: object):
+    if getattr(user, "rol", None) == "conductor":
+        raise HTTPException(403, "El conductor no tiene permiso para esta acción")
+
+
 # ---- CATEGORIAS ----
 @router.get("/categorias", response_model=list[CategoriaRead])
 def list_categorias(db: Session = Depends(get_db), _: object = Depends(get_current_user)):
@@ -93,8 +98,15 @@ def list_clientes(
 
 
 @router.post("/clientes", response_model=ClienteRead, status_code=201)
-def create_cliente(body: ClienteCreate, db: Session = Depends(get_db), _: object = Depends(get_current_user)):
-    c = Cliente(**body.model_dump())
+def create_cliente(body: ClienteCreate, db: Session = Depends(get_db), user: object = Depends(get_current_user)):
+    if getattr(user, "rol", None) == "conductor":
+        from fastapi import HTTPException
+        raise HTTPException(403, "El conductor no puede administrar clientes")
+    data = body.model_dump()
+    data["tipo_cliente"] = (data.get("tipo_cliente") or "MINORISTA").upper()
+    if data["tipo_cliente"] not in ("MINORISTA", "MAYORISTA"):
+        data["tipo_cliente"] = "MINORISTA"
+    c = Cliente(**data)
     db.add(c)
     db.commit()
     db.refresh(c)
@@ -102,10 +114,21 @@ def create_cliente(body: ClienteCreate, db: Session = Depends(get_db), _: object
 
 
 @router.put("/clientes/{cid}", response_model=ClienteRead)
-def update_cliente(cid: int, body: ClienteUpdate, db: Session = Depends(get_db), _: object = Depends(get_current_user)):
+def update_cliente(cid: int, body: ClienteUpdate, db: Session = Depends(get_db), user: object = Depends(get_current_user)):
+    if getattr(user, "rol", None) == "conductor":
+        from fastapi import HTTPException
+        raise HTTPException(403, "El conductor no puede administrar clientes")
     c = _get_or_404(db, Cliente, cid, "Cliente")
-    for k, v in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    if data.get("tipo_cliente"):
+        data["tipo_cliente"] = str(data["tipo_cliente"]).upper()
+        if data["tipo_cliente"] not in ("MINORISTA", "MAYORISTA"):
+            from fastapi import HTTPException
+            raise HTTPException(400, "Categoría de cliente inválida (MINORISTA | MAYORISTA)")
+    for k, v in data.items():
         setattr(c, k, v)
+    if not c.tipo_cliente:
+        c.tipo_cliente = "MINORISTA"
     db.commit()
     db.refresh(c)
     return c
@@ -142,7 +165,8 @@ def get_producto(pid: int, db: Session = Depends(get_db), _: object = Depends(ge
 
 
 @router.post("/productos", response_model=ProductoRead, status_code=201)
-def create_producto(body: ProductoCreate, db: Session = Depends(get_db), _: object = Depends(get_current_user)):
+def create_producto(body: ProductoCreate, db: Session = Depends(get_db), user: object = Depends(get_current_user)):
+    _bloquear_conductor(user)
     if db.query(Producto).filter(Producto.codigo == body.codigo).first():
         raise HTTPException(400, "Código de producto ya existe")
     if body.categoria_id and not db.get(Categoria, body.categoria_id):
@@ -159,7 +183,8 @@ def create_producto(body: ProductoCreate, db: Session = Depends(get_db), _: obje
 
 
 @router.put("/productos/{pid}", response_model=ProductoRead)
-def update_producto(pid: int, body: ProductoUpdate, db: Session = Depends(get_db), _: object = Depends(get_current_user)):
+def update_producto(pid: int, body: ProductoUpdate, db: Session = Depends(get_db), user: object = Depends(get_current_user)):
+    _bloquear_conductor(user)
     p = _get_or_404(db, Producto, pid, "Producto")
     data = body.model_dump(exclude_unset=True)
     if data.get("proveedor_id") and not db.get(Proveedor, data["proveedor_id"]):
@@ -172,7 +197,8 @@ def update_producto(pid: int, body: ProductoUpdate, db: Session = Depends(get_db
 
 
 @router.delete("/productos/{pid}")
-def delete_producto(pid: int, db: Session = Depends(get_db), _: object = Depends(get_current_user)):
+def delete_producto(pid: int, db: Session = Depends(get_db), user: object = Depends(get_current_user)):
+    _bloquear_conductor(user)
     p = _get_or_404(db, Producto, pid, "Producto")
     p.activo = False
     db.commit()

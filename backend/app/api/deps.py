@@ -8,7 +8,13 @@ from app.models.usuario import Usuario
 
 bearer = HTTPBearer(auto_error=False)
 
-ROLES_VALIDOS = ("administrador", "vendedor", "bodeguero")
+ROLES_VALIDOS = ("administrador", "vendedor", "bodeguero", "conductor")
+
+# Roles operativos: qué puede hacer cada uno (MVP simple, sin matriz compleja).
+# - administrador: todo + consulta.
+# - vendedor: POS/ventas, pedidos (crear/preparar), clientes.
+# - bodeguero: inventario/compras/productos, pedidos (preparar).
+# - conductor: solo sus entregas + marcar ENTREGADO/DEVUELTO.
 
 
 def get_current_user(

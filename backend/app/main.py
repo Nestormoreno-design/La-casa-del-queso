@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.database import engine
-from app.routers import auth, caja, catalogos, compras, dashboard, pedidos, usuarios, ventas
+from app.routers import auth, caja, catalogos, compras, creditos, dashboard, pedidos, usuarios, ventas
 
 app = FastAPI(title="La Casa del Queso API", version="1.0.0")
 
@@ -24,6 +24,7 @@ app.include_router(ventas.router, prefix="/api/v1")
 app.include_router(pedidos.router, prefix="/api/v1")
 app.include_router(caja.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(creditos.router, prefix="/api/v1")
 
 
 @app.get("/")

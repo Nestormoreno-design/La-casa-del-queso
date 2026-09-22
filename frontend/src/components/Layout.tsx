@@ -1,42 +1,37 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { displayRole } from "../utils/user";
-import BottomBar from "./BottomBar";
+import TopBar from "./TopBar";
 
-type Child = { to: string; label: string };
-type Group = { kind: "group"; id: string; label: string; icon: string; children: Child[] };
-type Link = { kind: "link"; to: string; label: string; icon: string };
+type Child = { to: string; label: string; roles?: string[] };
+type Group = { kind: "group"; id: string; label: string; icon: string; children: Child[]; roles?: string[] };
+type Link = { kind: "link"; to: string; label: string; icon: string; roles?: string[] };
 type Item = Group | Link;
 
+const ADMIN = ["administrador", "vendedor", "bodeguero"];
+
 const MENU: Item[] = [
-  { kind: "link", to: "/dashboard", label: "Inicio", icon: "🏠" },
+  { kind: "link", to: "/dashboard", label: "Inicio", icon: "🏠", roles: ADMIN },
   {
-    kind: "group", id: "ventas", label: "Ventas", icon: "💰",
+    kind: "group", id: "ventas", label: "Ventas", icon: "💰", roles: ADMIN,
     children: [
       { to: "/pos", label: "Nueva venta" },
       { to: "/ventas", label: "Historial" },
-      { to: "/informes/ventas", label: "Informe de ventas" },
-    ],
-  },
-  {
-    kind: "group", id: "distribucion", label: "Distribución", icon: "🚚",
-    children: [
-      { to: "/distribucion", label: "Panel" },
       { to: "/pedidos", label: "Pedidos" },
       { to: "/entregas", label: "Entregas" },
     ],
   },
-  { kind: "link", to: "/inventario", label: "Inventario", icon: "📦" },
-  { kind: "link", to: "/clientes", label: "Clientes", icon: "👥" },
-  { kind: "link", to: "/proveedores", label: "Proveedores", icon: "🏢" },
+  { kind: "link", to: "/inventario", label: "Inventario", icon: "📦", roles: ADMIN },
+  { kind: "link", to: "/clientes", label: "Clientes", icon: "👥", roles: ADMIN },
+  { kind: "link", to: "/proveedores", label: "Proveedores", icon: "🏢", roles: ["administrador", "bodeguero"] },
   {
-    kind: "group", id: "caja", label: "Caja", icon: "💵",
+    kind: "group", id: "caja", label: "Caja", icon: "💵", roles: ["administrador", "vendedor"],
     children: [
       { to: "/caja", label: "Caja actual" },
       { to: "/caja/historial", label: "Historial de cajas" },
     ],
   },
+  { kind: "link", to: "/mis-entregas", label: "Mis entregas", icon: "🚚", roles: ["conductor"] },
 ];
 
 const GROUPS: Group[] = MENU.filter((i): i is Group => i.kind === "group");
@@ -88,13 +83,12 @@ function PanelLeftIcon() {
 export default function Layout() {
   const { user } = useAuth();
   const loc = useLocation();
+  const isConductor = user?.rol === "conductor";
 
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "1");
   const [mobileOpen, setMobileOpen] = useState(false);
-  // Acordeón: solo un grupo abierto a la vez (o ninguno)
   const [openId, setOpenId] = useState<string | null>(() => groupOf(loc.pathname));
 
-  // Al navegar, abrir automáticamente el grupo padre de la ruta activa
   useEffect(() => {
     setOpenId(groupOf(loc.pathname));
     setMobileOpen(false);
@@ -109,7 +103,6 @@ export default function Layout() {
 
   const toggleGroup = (id: string) => {
     if (collapsed) {
-      // Contraído: expandir y abrir ese grupo (sin flechas en este estado)
       setCollapsed(false);
       localStorage.setItem("sidebar-collapsed", "0");
       setOpenId(id);
@@ -117,6 +110,47 @@ export default function Layout() {
       setOpenId((cur) => (cur === id ? null : id));
     }
   };
+
+  // ---- Sidebar fijo del conductor: solo Mis entregas (sin Salir).
+  // El cierre de sesión queda en el TopBar (menú de usuario).
+  if (isConductor) {
+    return (
+      <div className="flex min-h-screen">
+        {mobileOpen && (
+          <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)} />
+        )}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-[#101214] text-stone-200 md:sticky md:top-0 md:h-screen md:shrink-0 ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          } md:translate-x-0`}
+        >
+          <div className="flex items-center gap-2 p-4 pb-2">
+            <span className="shrink-0 text-2xl leading-none" title="La Casa del Queso">🧀</span>
+            <h1 className="flex-1 whitespace-nowrap text-base font-bold text-[#e8d5ae]">La Casa del Queso</h1>
+          </div>
+          <nav className="flex flex-1 flex-col gap-3 overflow-y-auto px-3">
+            <NavLink
+              to="/mis-entregas"
+              title="Mis entregas"
+              className={({ isActive }) => `side-big${isActive ? " side-big-active" : ""}`}
+            >
+              <span className="shrink-0 text-2xl leading-none">🚚</span>
+              <span className="flex-1">Mis entregas</span>
+            </NavLink>
+          </nav>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar onMenu={() => setMobileOpen(true)} />
+          <main className="min-w-0 flex-1 p-4 md:p-6">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  const visible = (roles?: string[]) => !roles || (user && roles.includes(user.rol));
+  const items = MENU.filter((i) => visible(i.roles));
 
   const renderLink = (to: string, label: string, icon: string) => (
     <NavLink
@@ -133,6 +167,8 @@ export default function Layout() {
   const renderGroup = (g: Group) => {
     const isOpen = openId === g.id;
     const hasActive = g.children.some((c) => loc.pathname === c.to);
+    const kids = g.children.filter((c) => visible(c.roles));
+    if (kids.length === 0) return null;
     return (
       <div key={g.id}>
         <button
@@ -148,7 +184,7 @@ export default function Layout() {
           <div className={`submenu${isOpen ? " open" : ""}`}>
             <div>
               <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-[#31373e] pl-2">
-                {g.children.map((c) => (
+                {kids.map((c) => (
                   <NavLink
                     key={c.to}
                     to={c.to}
@@ -167,7 +203,6 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Fondo oscuro solo en móvil cuando el menú está abierto */}
       {mobileOpen && (
         <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
@@ -177,7 +212,6 @@ export default function Layout() {
           collapsed ? "w-[68px]" : "w-60"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
-        {/* Logo + botón colapsar: siempre en la misma fila superior */}
         <div className={`flex items-center gap-2 pb-2 ${collapsed ? "justify-center p-2" : "p-4"}`}>
           <span className="shrink-0 text-2xl leading-none" title="La Casa del Queso">🧀</span>
           {!collapsed && <h1 className="flex-1 whitespace-nowrap text-base font-bold text-[#e8d5ae]">La Casa del Queso</h1>}
@@ -190,15 +224,8 @@ export default function Layout() {
           </button>
         </div>
 
-        {!collapsed && (
-          <p className="px-4 pb-3 text-xs text-stone-400">
-            {displayRole(user?.rol)}
-          </p>
-        )}
-
-        {/* Navegación */}
         <nav className={`flex flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden px-3 ${collapsed ? "items-center" : ""}`}>
-          {MENU.map((item) =>
+          {items.map((item) =>
             item.kind === "link"
               ? renderLink(item.to, item.label, item.icon)
               : renderGroup(item)
@@ -206,25 +233,11 @@ export default function Layout() {
         </nav>
       </aside>
 
-      {/* Contenido + Bottom Bar */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Barra superior solo móvil */}
-        <header className="sticky top-0 z-20 flex items-center gap-3 bg-[#1f2328]/95 p-3 shadow-sm md:hidden">
-          <button
-            onClick={() => setMobileOpen(true)}
-            title="Abrir menú"
-            className="btn btn-ghost px-3 py-1.5 text-lg"
-          >
-            ☰
-          </button>
-          <span className="font-bold text-[#e8d5ae]">🧀 La Casa del Queso</span>
-        </header>
-        <main className="min-w-0 flex-1 p-4 pb-28 md:p-8 md:pb-32">
+        <TopBar onMenu={() => setMobileOpen(true)} />
+        <main className="min-w-0 flex-1 p-4 md:p-6">
           <Outlet />
         </main>
-        <div className={`fixed bottom-0 right-0 z-20 left-0 ${collapsed ? "md:left-[68px]" : "md:left-60"}`}>
-          <BottomBar />
-        </div>
       </div>
     </div>
   );

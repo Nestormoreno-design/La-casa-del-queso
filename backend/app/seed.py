@@ -15,6 +15,13 @@ def run():
             print("Seed: usuario admin/admin creado")
         else:
             print("Seed: admin ya existe")
+        # Usuarios demo por rol (idempotente; no toca contraseñas existentes)
+        for uname, pwd, rol in [("vendedor", "vendedor", "vendedor"),
+                                ("bodeguero", "bodeguero", "bodeguero"),
+                                ("conductor", "conductor", "conductor")]:
+            if not db.query(Usuario).filter(Usuario.username == uname).first():
+                db.add(Usuario(username=uname, password_hash=hash_password(pwd), rol=rol))
+                print(f"Seed: usuario {uname}/{pwd} ({rol}) creado")
 
         if db.query(cat.Categoria).count() == 0:
             nombres = ["Quesos frescos", "Quesos madurados", "Lácteos", "Acompañamientos"]
@@ -31,15 +38,15 @@ def run():
             print("Seed: 2 proveedores")
 
         if db.query(cat.Cliente).count() == 0:
-            db.add(cat.Cliente(nombre="Cliente Mostrador Demo", telefono="3000000000"))
-            db.add(cat.Cliente(nombre="Tienda La Esquina", documento="1020304050", telefono="3112223344"))
+            db.add(cat.Cliente(nombre="Cliente Mostrador Demo", telefono="3000000000", tipo_cliente="MINORISTA"))
+            db.add(cat.Cliente(nombre="Tienda La Esquina", documento="1020304050", telefono="3112223344", tipo_cliente="MINORISTA"))
             print("Seed: 2 clientes")
 
         if not db.query(cat.Cliente).filter(cat.Cliente.nombre == "Distribuciones El Sabor").first():
             db.add(cat.Cliente(nombre="Distribuciones El Sabor", documento="900123456-7",
                                telefono="3000000000", email="contacto@elsabor.co",
                                direccion="Bucaramanga", ciudad="Bucaramanga",
-                               tipo_cliente="DISTRIBUIDOR"))
+                               tipo_cliente="MAYORISTA"))
             db.commit()
             print("Seed: Distribuciones El Sabor")
 

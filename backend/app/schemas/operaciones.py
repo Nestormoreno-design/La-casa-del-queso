@@ -42,6 +42,7 @@ class PedidoCreate(BaseModel):
     hora_entrega: str | None = None
     direccion_entrega: str | None = None
     observaciones: str | None = None
+    conductor_id: int | None = None
     items: list[PedidoItemIn] = Field(min_length=1)
 
 

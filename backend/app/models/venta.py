@@ -22,7 +22,7 @@ class Venta(Base):
     tipo: Mapped[str] = mapped_column(String(20), default="MENUDEO", nullable=False)
     # MENUDEO | DISTRIBUCION
     estado: Mapped[str] = mapped_column(String(20), default="PAGADA", nullable=False)
-    # PAGADA | ANULADA
+    # PAGADA | PENDIENTE (crédito) | FACTURADA (pedido en distribución) | ANULADA
     canal: Mapped[str] = mapped_column(String(20), default="POS", nullable=False)
     # POS | PEDIDO
     caja_sesion_id: Mapped[int | None] = mapped_column(ForeignKey("caja_sesiones.id"))

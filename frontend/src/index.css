@@ -40,12 +40,21 @@ select.input option { background-color: #2a2f35; }
 .submenu.open { grid-template-rows: 1fr; }
 .submenu > div { overflow: hidden; }
 
-/* Bottom Bar */
+/* Bottom Bar (legado, sin uso: reemplazada por TopBar) */
 .bottombar { @apply flex items-center justify-around gap-1 border-t border-[#23282e] bg-[#101214]/95 px-2 py-2 shadow-[0_-2px_12px_rgba(0,0,0,0.4)] backdrop-blur; }
 .bb-item { @apply relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-stone-400 hover:bg-[#23282e] hover:text-white transition-colors; }
 .bb-item-active { @apply bg-[#262c33] text-white; }
 .bb-label { @apply text-[11px] leading-none; }
 .bb-badge { @apply absolute -top-1 left-1/2 ml-2 rounded-full bg-[#c9a86a] px-1.5 text-[10px] font-bold leading-4 text-[#1b1e22]; }
+
+/* Top Bar */
+.topbar { @apply sticky top-0 z-20 flex items-center gap-3 border-b border-[#23282e] bg-[#101214]/95 px-4 py-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.4)] backdrop-blur; }
+.topbar-icon { @apply relative flex items-center rounded-xl px-3 py-1.5 text-stone-400 hover:bg-[#23282e] hover:text-white transition-colors; }
+.topbar-user { @apply flex items-center gap-2 rounded-xl px-3 py-1.5 hover:bg-[#23282e] transition-colors; }
+
+/* Sidebar del conductor: botones grandes, área táctil cómoda */
+.side-big { @apply flex min-h-[64px] w-full items-center gap-3 rounded-2xl border border-[#31373e] bg-[#1a1e22] px-4 py-4 text-lg font-semibold text-stone-100 transition-colors hover:bg-[#23282e]; }
+.side-big-active { @apply border-[#c9a86a]/60 bg-[#262c33] text-white; }
 
 @media print {
   aside, header { display: none !important; }

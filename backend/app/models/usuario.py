@@ -12,7 +12,7 @@ class Usuario(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol: Mapped[str] = mapped_column(String(30), nullable=False, default="administrador")
-    # Roles válidos MVP: administrador. Futuro: vendedor, bodeguero.
+    # Roles MVP: administrador | vendedor | bodeguero | conductor
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
